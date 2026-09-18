@@ -16,13 +16,13 @@
 ## Roadmap
 
 ### Phase 1 — Persistent Vector Store
-**Status: ⬜ Planned**
-- [ ] เปลี่ยน ChromaDB จาก in-memory เป็น persistent storage
-- [ ] กำหนด directory สำหรับ vector data
-- [ ] ป้องกัน runtime vector data ไม่ให้เข้า Git
-- [ ] ทดสอบ restart แล้ว index ยังอยู่
-- [ ] ตรวจ dedup/upsert เดิมว่ายังทำงาน
-- [ ] แสดงจำนวน documents/chunks ใน index
+**Status: 🟡 In Progress**
+- [x] เปลี่ยน ChromaDB จาก in-memory เป็น persistent storage
+- [x] กำหนด directory สำหรับ vector data
+- [x] ป้องกัน runtime vector data ไม่ให้เข้า Git
+- [ ] ทดสอบ restart แล้ว index ยังอยู่ (ต้องทดสอบร่วมกับ Ollama/UI)
+- [ ] ตรวจ dedup/upsert เดิมว่ายังทำงาน (ต้องทดสอบ ingest จริง)
+- [x] แสดงจำนวน documents/chunks ใน index (มี `get_index_stats()` จาก baseline)
 
 **Learning outcome:** เข้าใจความแตกต่างระหว่าง document, embedding และ vector store.
 **Exit criteria:** restart แล้วข้อมูลยังอยู่, ingest ซ้ำไม่เกิด duplicate, runtime data ไม่ถูก commit.
@@ -93,7 +93,18 @@
 - กำหนด roadmap Phase 1–7
 - กำหนด workflow: test → PLAN.md → diff/status → commit → push
 
-**Next:** Phase 1 — Persistent Vector Store
+### 2026-09-18 — Phase 1 Implementation
+**Status: 🟡 In Progress**
+- เปลี่ยน `chromadb.Client()` เป็น `chromadb.PersistentClient()`
+- กำหนด vector data ที่ `data/chroma/`
+- เพิ่ม `.gitignore` ป้องกัน runtime vector data และ Python cache ใหม่
+- ปรับ README อธิบาย architecture, persistence และขั้นตอนทดสอบ
+- `python -m py_compile rag_app.py ingestion.py` ผ่าน
+- `git diff --check` ผ่าน
+- ตรวจ `.gitignore` แล้ว `data/chroma/` ถูก ignore ตามที่กำหนด
+- ยังต้องทดสอบ persistence และ dedup/upsert แบบ end-to-end ร่วมกับ Ollama ก่อนปิด Phase 1
+
+**Next:** ทดสอบ Phase 1 แบบ end-to-end แล้วจึงเปลี่ยนสถานะเป็น Completed
 
 ## Current Status
-Baseline ✅ | Phase 1 ⬜ | Phase 2 ⬜ | Phase 3 ⬜ | Phase 4 ⬜ | Phase 5 ⬜ | Phase 6 ⬜ | Phase 7 ⬜
+Baseline ✅ | Phase 1 🟡 | Phase 2 ⬜ | Phase 3 ⬜ | Phase 4 ⬜ | Phase 5 ⬜ | Phase 6 ⬜ | Phase 7 ⬜

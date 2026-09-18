@@ -19,9 +19,10 @@ LEXICAL_WEIGHT = 0.25
 MIN_FINAL_SCORE = 0.22
 FALLBACK_FINAL_SCORE = 0.16
 MAX_CONTEXT_CHUNKS = 4
+CHROMA_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "chroma")
 
-# Initialize ChromaDB client เตรียม Vector database สำหรับ RAG
-client = chromadb.Client()
+# Persistent ChromaDB keeps the vector index across application restarts.
+client = chromadb.PersistentClient(path=CHROMA_DATA_DIR)
 
 # Create or get collection สร้าง ถังเก็บข้อมูล
 collection = client.get_or_create_collection(name="rag_collection")
