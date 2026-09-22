@@ -45,12 +45,12 @@
 **Learning outcome:** เข้าใจว่า application retrieve context ก่อนส่งให้ LLM.
 
 ### Phase 4 — RAG Configuration Lab
-**Status: ⬜ Planned**
-- [ ] ทดลองปรับ chunk size/overlap
-- [ ] Top-K / max context chunks
-- [ ] semantic/lexical weight
-- [ ] score threshold
-- [ ] temperature
+**Status: ✅ Completed**
+- [x] ทดลองปรับ chunk size/overlap
+- [x] Top-K / max context chunks
+- [x] semantic/lexical weight
+- [x] score threshold
+- [x] temperature
 
 **Learning outcome:** เห็นผลของ parameter ต่อ retrieval และคำตอบ.
 
@@ -118,6 +118,15 @@
 - ทดสอบ ingest เอกสารเดิมซ้ำสำเร็จ: `added=0`, `reused=3`, `removed=0`
 - ปิด Phase 1 สำเร็จตาม Exit Criteria
 
+### 2026-09-22 — Phase 4 Implementation
+**Status: ✅ Completed**
+- เพิ่มพารามิเตอร์ chunk size/overlap ใน Admin Upload
+- เพิ่มพารามิเตอร์ Top-K, max context chunks, semantic/lexical weight และ minimum score ใน Retrieval Inspector
+- เพิ่ม Generation Temperature slider ใน Chatbot Interface
+- ทำ normalization ของ semantic/lexical weight และ validation ของค่าตั้งต้น
+- ทดสอบ configuration ด้วย query `2568` สำเร็จ และยืนยันว่า selection limit/score trace เปลี่ยนตามค่าใหม่
+- `python -m py_compile rag_app.py ingestion.py` และ `git diff --check` ผ่าน
+
 ### 2026-09-22 — Phase 3 Implementation
 **Status: ✅ Completed**
 - เพิ่ม retrieval trace ใน `retrieve_relevant_chunks()` โดยเก็บ candidates, thresholds และ selection decision
@@ -143,4 +152,4 @@
 - ยืนยันว่า runtime data ใน `data/chroma/` ไม่ถูก commit เนื่องจาก `.gitignore`
 
 ## Current Status
-Baseline ✅ | Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅ | Phase 4 ⬜ | Phase 5 ⬜ | Phase 6 ⬜ | Phase 7 ⬜
+Baseline ✅ | Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅ | Phase 4 ✅ | Phase 5 ⬜ | Phase 6 ⬜ | Phase 7 ⬜

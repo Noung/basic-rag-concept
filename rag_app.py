@@ -72,8 +72,24 @@ def distance_to_relevance(distance):
     return 1.0 / (1.0 + max(float(distance), 0.0))
 
 
-def retrieve_relevant_chunks(query, n_results=RETRIEVAL_TOP_K):
-    """Retrieve chunks with hybrid scoring (semantic + lexical) and rerank."""
+def retrieve_relevant_chunks(
+    query,
+    n_results=RETRIEVAL_TOP_K,
+    semantic_weight=SEMANTIC_WEIGHT,
+    lexical_weight=LEXICAL_WEIGHT,
+    min_final_score=MIN_FINAL_SCORE,
+    max_context_chunks=MAX_CONTEXT_CHUNKS,
+):
+    """Retrieve chunks with configurable hybrid scoring and reranking."""
+    if semantic_weight < 0 or lexical_weight < 0:
+        raise ValueError("semantic_weight and lexical_weight must be >= 0")
+    if semantic_weight + lexical_weight == 0:
+        raise ValueError("semantic_weight and lexical_weight cannot both be zero")
+    if min_final_score < 0 or max_context_chunks <= 0:
+        raise ValueError("min_final_score must be >= 0 and max_context_chunks > 0")
+    weight_total = semantic_weight + lexical_weight
+    semantic_weight = semantic_weight / weight_total
+    lexical_weight = lexical_weight / weight_total
     query_embedding = ollama_ef([query])[0]
     raw_results = collection.query(
         query_embeddings=[query_embedding],
@@ -95,7 +111,7 @@ def retrieve_relevant_chunks(query, n_results=RETRIEVAL_TOP_K):
         distance = dists[index] if index < len(dists) else None
         semantic_score = distance_to_relevance(distance)
         lexical_score = _lexical_overlap_score(query, doc)
-        final_score = (SEMANTIC_WEIGHT * semantic_score) + (LEXICAL_WEIGHT * lexical_score)
+        final_score = (semantic_weight * semantic_score) + (lexical_weight * lexical_score)
         candidates.append(
             {
                 "document": doc,
@@ -108,8 +124,8 @@ def retrieve_relevant_chunks(query, n_results=RETRIEVAL_TOP_K):
         )
 
     candidates.sort(key=lambda x: x["final_score"], reverse=True)
-    selected = [c for c in candidates if c["final_score"] >= MIN_FINAL_SCORE]
-    selected = selected[:MAX_CONTEXT_CHUNKS]
+    selected = [c for c in candidates if c["final_score"] >= min_final_score]
+    selected = selected[:max_context_chunks]
 
     # Safe fallback: if none pass strict threshold, keep a small set when relevance is still acceptable.
     if not selected:
@@ -123,17 +139,34 @@ def retrieve_relevant_chunks(query, n_results=RETRIEVAL_TOP_K):
         "top_score": top_score,
         "avg_score": avg_score,
         "candidates": candidates,
-        "strict_threshold": MIN_FINAL_SCORE,
+        "strict_threshold": min_final_score,
+        "semantic_weight": semantic_weight,
+        "lexical_weight": lexical_weight,
+        "max_context_chunks": max_context_chunks,
         "fallback_threshold": FALLBACK_FINAL_SCORE,
     }
 
 
-def get_retrieval_inspection(query, n_results=RETRIEVAL_TOP_K):
+def get_retrieval_inspection(
+    query,
+    n_results=RETRIEVAL_TOP_K,
+    max_context_chunks=MAX_CONTEXT_CHUNKS,
+    semantic_weight=SEMANTIC_WEIGHT,
+    lexical_weight=LEXICAL_WEIGHT,
+    min_final_score=MIN_FINAL_SCORE,
+):
     """Return a readable retrieval trace for learning and debugging."""
     if not query or not query.strip():
         return "Please enter a query"
 
-    selected, stats = retrieve_relevant_chunks(query.strip(), n_results=n_results)
+    selected, stats = retrieve_relevant_chunks(
+        query.strip(),
+        n_results=int(n_results),
+        semantic_weight=float(semantic_weight),
+        lexical_weight=float(lexical_weight),
+        min_final_score=float(min_final_score),
+        max_context_chunks=int(max_context_chunks),
+    )
     candidates = stats.get("candidates", [])
     selected_ids = {id(item) for item in selected}
 
@@ -382,14 +415,18 @@ def get_document_chunk_inspector():
 
 
 # ทำการใส่ข้อมูล จากไฟล์ ใส่เข้า Vector database
-def index_document(file):
-    """Index the document into ChromaDB."""
+def index_document(file, chunk_size=700, chunk_overlap=120):
+    """Index the document into ChromaDB with configurable chunking."""
     if file and os.path.exists(file.name):
         text = load_text_file(file.name)
         if isinstance(text, str) and text.startswith("Error reading file:"):
             return text
 
-        chunks = chunk_text(text, chunk_size=700, chunk_overlap=120)
+        chunks = chunk_text(
+            text,
+            chunk_size=int(chunk_size),
+            chunk_overlap=int(chunk_overlap),
+        )
         if not chunks:
             return "No content found in file after chunking"
 
@@ -480,9 +517,9 @@ def query_rag(query, history,temperature=0.3, n_results=5):
 
 # ส่วนของหน้าจอ UI
 # Admin interface for uploading files ส่วน Admin 
-def admin_interface(file):
+def admin_interface(file, chunk_size, chunk_overlap):
     """Admin interface for uploading and indexing text files."""
-    return index_document(file)
+    return index_document(file, chunk_size, chunk_overlap)
 
 
 def admin_stats_interface():
@@ -495,22 +532,42 @@ def admin_inspector_interface():
     return get_document_chunk_inspector()
 
 
-def admin_retrieval_interface(query):
+def admin_retrieval_interface(
+    query,
+    top_k,
+    max_context_chunks,
+    semantic_weight,
+    lexical_weight,
+    min_final_score,
+):
     """Admin interface for inspecting retrieval decisions."""
-    return get_retrieval_inspection(query)
+    return get_retrieval_inspection(
+        query,
+        n_results=top_k,
+        max_context_chunks=max_context_chunks,
+        semantic_weight=semantic_weight,
+        lexical_weight=lexical_weight,
+        min_final_score=min_final_score,
+    )
 
 # Create Gradio interfaces
 with gr.Blocks() as admin_app:
     gr.Markdown("# Admin Interface")
     gr.Markdown("Upload a text file to index its content for the chatbot.")
     file_input = gr.File(label="Upload Text File")
+    chunk_size_input = gr.Number(label="Chunk Size", value=700, precision=0)
+    chunk_overlap_input = gr.Number(label="Chunk Overlap", value=120, precision=0)
     output = gr.Textbox(label="Indexing Result")
     upload_btn = gr.Button("Upload and Index")
     stats_btn = gr.Button("Show Index Stats")
     stats_output = gr.Textbox(label="Index Stats")
     inspector_btn = gr.Button("Inspect Documents & Chunks")
     inspector_output = gr.Textbox(label="Document & Chunk Inspector", lines=20)
-    upload_btn.click(fn=admin_interface, inputs=file_input, outputs=output)
+    upload_btn.click(
+        fn=admin_interface,
+        inputs=[file_input, chunk_size_input, chunk_overlap_input],
+        outputs=output,
+    )
     stats_btn.click(fn=admin_stats_interface, inputs=None, outputs=stats_output)
     inspector_btn.click(
         fn=admin_inspector_interface,
@@ -519,18 +576,37 @@ with gr.Blocks() as admin_app:
     )
     gr.Markdown("## Retrieval Inspector")
     retrieval_query = gr.Textbox(label="Test Query")
+    retrieval_top_k = gr.Number(label="Top-K", value=8, precision=0)
+    retrieval_max_context = gr.Number(label="Max Context Chunks", value=4, precision=0)
+    retrieval_semantic_weight = gr.Number(label="Semantic Weight", value=0.75)
+    retrieval_lexical_weight = gr.Number(label="Lexical Weight", value=0.25)
+    retrieval_threshold = gr.Number(label="Minimum Final Score", value=0.22)
     retrieval_btn = gr.Button("Inspect Retrieval")
     retrieval_output = gr.Textbox(label="Retrieval Trace", lines=20)
     retrieval_btn.click(
         fn=admin_retrieval_interface,
-        inputs=retrieval_query,
+        inputs=[
+            retrieval_query,
+            retrieval_top_k,
+            retrieval_max_context,
+            retrieval_semantic_weight,
+            retrieval_lexical_weight,
+            retrieval_threshold,
+        ],
         outputs=retrieval_output,
     )
 # ส่วนของ ChatBot
 with gr.Blocks() as chat_app:
     gr.Markdown("# Chatbot Interface")
     gr.Markdown("Ask questions based on the indexed text file content.")
-    gr.ChatInterface(query_rag)
+    temperature_input = gr.Slider(
+        minimum=0.0,
+        maximum=1.0,
+        value=0.3,
+        step=0.1,
+        label="Generation Temperature",
+    )
+    gr.ChatInterface(query_rag, additional_inputs=[temperature_input])
 
 # main function
 if __name__ == "__main__":
