@@ -104,7 +104,17 @@
 - ตรวจ `.gitignore` แล้ว `data/chroma/` ถูก ignore ตามที่กำหนด
 - ยังต้องทดสอบ persistence และ dedup/upsert แบบ end-to-end ร่วมกับ Ollama ก่อนปิด Phase 1
 
-**Next:** ทดสอบ Phase 1 แบบ end-to-end แล้วจึงเปลี่ยนสถานะเป็น Completed
+**Next:** ทดสอบ restart persistence และ ingest ซ้ำหลัง restart แล้วจึงเปลี่ยนสถานะเป็น Completed
+
+### 2026-09-22 — Development Models and End-to-End Test
+**Status: 🟡 In Progress**
+- ติดตั้งโมเดลสำหรับ Development/Test: `gemma3:1b` และ `nomic-embed-text`
+- ปรับ `rag_app.py`, `README.md` และ Baseline description ให้ใช้โมเดลทั้งสอง
+- `python -m py_compile rag_app.py ingestion.py` ผ่าน
+- ทดสอบ End-to-End กับ `thai_holiday.txt` สำเร็จ: อ่านเอกสาร → สร้าง 3 chunks → สร้าง embeddings → บันทึก ChromaDB → retrieval ได้ 3 chunks → สร้างคำตอบและแสดง source citation
+- Retrieval ได้ `top_score=0.574` และ `avg_score=0.568`
+- ยืนยันว่าโมเดลขนาดใหญ่ `gemma3:12b` และ `qwen3-embedding:8b` ไม่เหมาะกับเครื่อง Development ปัจจุบันเนื่องจากหน่วยความจำไม่เพียงพอ
+- ยังไม่ได้ปิด Phase 1 เพราะยังต้องทดสอบ restart persistence และ ingest ซ้ำหลัง restart อย่างเป็นระบบ
 
 ## Current Status
 Baseline ✅ | Phase 1 🟡 | Phase 2 ⬜ | Phase 3 ⬜ | Phase 4 ⬜ | Phase 5 ⬜ | Phase 6 ⬜ | Phase 7 ⬜
