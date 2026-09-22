@@ -16,12 +16,12 @@
 ## Roadmap
 
 ### Phase 1 — Persistent Vector Store
-**Status: 🟡 In Progress**
+**Status: ✅ Completed**
 - [x] เปลี่ยน ChromaDB จาก in-memory เป็น persistent storage
 - [x] กำหนด directory สำหรับ vector data
 - [x] ป้องกัน runtime vector data ไม่ให้เข้า Git
-- [ ] ทดสอบ restart แล้ว index ยังอยู่ (ต้องทดสอบร่วมกับ Ollama/UI)
-- [ ] ตรวจ dedup/upsert เดิมว่ายังทำงาน (ต้องทดสอบ ingest จริง)
+- [x] ทดสอบ restart แล้ว index ยังอยู่ (ทดสอบผ่านด้วย Persistent ChromaDB)
+- [x] ตรวจ dedup/upsert เดิมว่ายังทำงาน (เอกสารเดิม reused=3, added=0, removed=0)
 - [x] แสดงจำนวน documents/chunks ใน index (มี `get_index_stats()` จาก baseline)
 
 **Learning outcome:** เข้าใจความแตกต่างระหว่าง document, embedding และ vector store.
@@ -104,7 +104,7 @@
 - ตรวจ `.gitignore` แล้ว `data/chroma/` ถูก ignore ตามที่กำหนด
 - ยังต้องทดสอบ persistence และ dedup/upsert แบบ end-to-end ร่วมกับ Ollama ก่อนปิด Phase 1
 
-**Next:** ทดสอบ restart persistence และ ingest ซ้ำหลัง restart แล้วจึงเปลี่ยนสถานะเป็น Completed
+**Next:** เริ่ม Phase 2 — Document & Chunk Inspector
 
 ### 2026-09-22 — Development Models and End-to-End Test
 **Status: 🟡 In Progress**
@@ -114,7 +114,16 @@
 - ทดสอบ End-to-End กับ `thai_holiday.txt` สำเร็จ: อ่านเอกสาร → สร้าง 3 chunks → สร้าง embeddings → บันทึก ChromaDB → retrieval ได้ 3 chunks → สร้างคำตอบและแสดง source citation
 - Retrieval ได้ `top_score=0.574` และ `avg_score=0.568`
 - ยืนยันว่าโมเดลขนาดใหญ่ `gemma3:12b` และ `qwen3-embedding:8b` ไม่เหมาะกับเครื่อง Development ปัจจุบันเนื่องจากหน่วยความจำไม่เพียงพอ
-- ยังไม่ได้ปิด Phase 1 เพราะยังต้องทดสอบ restart persistence และ ingest ซ้ำหลัง restart อย่างเป็นระบบ
+- ทดสอบ restart persistence สำเร็จ: เปิด process ใหม่แล้วยังพบ 3 chunks และ 1 document
+- ทดสอบ ingest เอกสารเดิมซ้ำสำเร็จ: `added=0`, `reused=3`, `removed=0`
+- ปิด Phase 1 สำเร็จตาม Exit Criteria
+
+### 2026-09-22 — Phase 1 Verification
+**Status: ✅ Completed**
+- ตรวจ index ก่อนและหลังเปิด Python process ใหม่ พบข้อมูลคงอยู่ครบ: 3 chunks, 1 document
+- ingest `thai_holiday.txt` ซ้ำหลัง restart ไม่สร้างข้อมูลซ้ำ
+- ผลลัพธ์: `added=0`, `reused=3`, `removed=0`
+- ยืนยันว่า runtime data ใน `data/chroma/` ไม่ถูก commit เนื่องจาก `.gitignore`
 
 ## Current Status
-Baseline ✅ | Phase 1 🟡 | Phase 2 ⬜ | Phase 3 ⬜ | Phase 4 ⬜ | Phase 5 ⬜ | Phase 6 ⬜ | Phase 7 ⬜
+Baseline ✅ | Phase 1 ✅ | Phase 2 ⬜ | Phase 3 ⬜ | Phase 4 ⬜ | Phase 5 ⬜ | Phase 6 ⬜ | Phase 7 ⬜
