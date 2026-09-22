@@ -264,6 +264,67 @@ def get_index_stats():
     )
 
 
+def get_document_chunk_inspector():
+    """Return a readable document/chunk inspection report for learning."""
+    total_chunks = collection.count()
+    if total_chunks == 0:
+        return "No indexed chunks yet"
+
+    rows = collection.get(include=["documents", "metadatas"])
+    ids = _safe_list(rows.get("ids") if rows else [])
+    documents = _safe_list(rows.get("documents") if rows else [])
+    metadatas = _safe_list(rows.get("metadatas") if rows else [])
+
+    grouped = {}
+    for index, document in enumerate(documents):
+        metadata = metadatas[index] if index < len(metadatas) else {}
+        row_id = ids[index] if index < len(ids) else "unknown"
+        document_id = metadata.get("document_id", "unknown") if metadata else "unknown"
+        grouped.setdefault(document_id, []).append(
+            {
+                "row_id": row_id,
+                "document": document or "",
+                "metadata": metadata or {},
+            }
+        )
+
+    lines = [
+        "Document & Chunk Inspector",
+        f"Total chunks: {total_chunks}",
+        f"Unique documents: {len(grouped)}",
+        "",
+    ]
+
+    for document_id, chunks in sorted(grouped.items()):
+        source = chunks[0]["metadata"].get("source", "unknown")
+        lines.append(f"Document: {source}")
+        lines.append(f"Document ID: {document_id}")
+        lines.append(f"Chunks: {len(chunks)}")
+        lines.append("Chunk size/overlap: configured in index_document (700/120 characters)")
+        lines.append("")
+
+        for chunk in sorted(chunks, key=lambda item: item["metadata"].get("chunk_id", 0)):
+            metadata = chunk["metadata"]
+            chunk_id = metadata.get("chunk_id", "?")
+            content_hash = metadata.get("content_hash", "N/A")
+            created_at = metadata.get("created_at", "N/A")
+            preview = " ".join(chunk["document"].split())
+            if len(preview) > 180:
+                preview = preview[:180] + "..."
+            lines.extend(
+                [
+                    f"  Chunk {chunk_id} | characters={len(chunk['document'])}",
+                    f"  ID: {chunk['row_id']}",
+                    f"  Hash: {content_hash}",
+                    f"  Created: {created_at}",
+                    f"  Preview: {preview}",
+                    "",
+                ]
+            )
+
+    return "\n".join(lines)
+
+
 # ทำการใส่ข้อมูล จากไฟล์ ใส่เข้า Vector database
 def index_document(file):
     """Index the document into ChromaDB."""
@@ -372,6 +433,11 @@ def admin_stats_interface():
     """Admin interface for viewing index stats."""
     return get_index_stats()
 
+
+def admin_inspector_interface():
+    """Admin interface for inspecting indexed documents and chunks."""
+    return get_document_chunk_inspector()
+
 # Create Gradio interfaces
 with gr.Blocks() as admin_app:
     gr.Markdown("# Admin Interface")
@@ -381,8 +447,15 @@ with gr.Blocks() as admin_app:
     upload_btn = gr.Button("Upload and Index")
     stats_btn = gr.Button("Show Index Stats")
     stats_output = gr.Textbox(label="Index Stats")
+    inspector_btn = gr.Button("Inspect Documents & Chunks")
+    inspector_output = gr.Textbox(label="Document & Chunk Inspector", lines=20)
     upload_btn.click(fn=admin_interface, inputs=file_input, outputs=output)
     stats_btn.click(fn=admin_stats_interface, inputs=None, outputs=stats_output)
+    inspector_btn.click(
+        fn=admin_inspector_interface,
+        inputs=None,
+        outputs=inspector_output,
+    )
 # ส่วนของ ChatBot
 with gr.Blocks() as chat_app:
     gr.Markdown("# Chatbot Interface")

@@ -28,10 +28,10 @@
 **Exit criteria:** restart แล้วข้อมูลยังอยู่, ingest ซ้ำไม่เกิด duplicate, runtime data ไม่ถูก commit.
 
 ### Phase 2 — Document & Chunk Inspector
-**Status: ⬜ Planned**
-- [ ] แสดง document, จำนวน chunks, chunk size/overlap
-- [ ] เปิดดูเนื้อหา chunk และ metadata
-- [ ] แสดง added/reused/removed chunks
+**Status: ✅ Completed**
+- [x] แสดง document, จำนวน chunks, chunk size/overlap
+- [x] เปิดดูเนื้อหา chunk และ metadata
+- [x] แสดง added/reused/removed chunks
 
 **Learning outcome:** เห็นว่าเอกสารถูก chunk ก่อน embedding และเห็นผลของ chunk size/overlap.
 
@@ -118,6 +118,14 @@
 - ทดสอบ ingest เอกสารเดิมซ้ำสำเร็จ: `added=0`, `reused=3`, `removed=0`
 - ปิด Phase 1 สำเร็จตาม Exit Criteria
 
+### 2026-09-22 — Phase 2 Implementation
+**Status: ✅ Completed**
+- เพิ่ม `get_document_chunk_inspector()` สำหรับแสดงเอกสารและ chunks จาก Persistent ChromaDB
+- แสดงจำนวนเอกสาร/chunks, document ID, chunk ID, ขนาดข้อความ, content hash, created timestamp และ preview
+- เพิ่มปุ่ม `Inspect Documents & Chunks` ใน Admin Interface
+- ทดสอบกับ `thai_holiday.txt` สำเร็จ: พบ 1 document, 3 chunks และ metadata ครบ
+- `python -m py_compile rag_app.py ingestion.py` และ `git diff --check` ผ่าน
+
 ### 2026-09-22 — Phase 1 Verification
 **Status: ✅ Completed**
 - ตรวจ index ก่อนและหลังเปิด Python process ใหม่ พบข้อมูลคงอยู่ครบ: 3 chunks, 1 document
@@ -126,4 +134,4 @@
 - ยืนยันว่า runtime data ใน `data/chroma/` ไม่ถูก commit เนื่องจาก `.gitignore`
 
 ## Current Status
-Baseline ✅ | Phase 1 ✅ | Phase 2 ⬜ | Phase 3 ⬜ | Phase 4 ⬜ | Phase 5 ⬜ | Phase 6 ⬜ | Phase 7 ⬜
+Baseline ✅ | Phase 1 ✅ | Phase 2 ✅ | Phase 3 ⬜ | Phase 4 ⬜ | Phase 5 ⬜ | Phase 6 ⬜ | Phase 7 ⬜
