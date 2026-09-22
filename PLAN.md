@@ -36,11 +36,11 @@
 **Learning outcome:** เห็นว่าเอกสารถูก chunk ก่อน embedding และเห็นผลของ chunk size/overlap.
 
 ### Phase 3 — Retrieval Inspector
-**Status: ⬜ Planned**
-- [ ] แสดง Top-K chunks และ source
-- [ ] แสดง semantic, lexical และ final score
-- [ ] แสดง threshold decision
-- [ ] ระบุ chunks ที่ถูกส่งเข้า LLM
+**Status: ✅ Completed**
+- [x] แสดง Top-K chunks และ source
+- [x] แสดง semantic, lexical และ final score
+- [x] แสดง threshold decision
+- [x] ระบุ chunks ที่ถูกส่งเข้า LLM
 
 **Learning outcome:** เข้าใจว่า application retrieve context ก่อนส่งให้ LLM.
 
@@ -118,6 +118,15 @@
 - ทดสอบ ingest เอกสารเดิมซ้ำสำเร็จ: `added=0`, `reused=3`, `removed=0`
 - ปิด Phase 1 สำเร็จตาม Exit Criteria
 
+### 2026-09-22 — Phase 3 Implementation
+**Status: ✅ Completed**
+- เพิ่ม retrieval trace ใน `retrieve_relevant_chunks()` โดยเก็บ candidates, thresholds และ selection decision
+- เพิ่ม `get_retrieval_inspection()` สำหรับแสดง Top-K, source, semantic score, lexical score และ final score
+- เพิ่มการแสดงว่า chunk ใดถูกเลือกส่งเข้า LLM หรือไม่ถูกเลือก
+- เพิ่ม Retrieval Inspector ในหน้า Admin สำหรับป้อนคำถามทดสอบ
+- ทดสอบด้วย query `2568` สำเร็จ: แสดง scores และ threshold decision ครบ
+- `python -m py_compile rag_app.py ingestion.py` และ `git diff --check` ผ่าน
+
 ### 2026-09-22 — Phase 2 Implementation
 **Status: ✅ Completed**
 - เพิ่ม `get_document_chunk_inspector()` สำหรับแสดงเอกสารและ chunks จาก Persistent ChromaDB
@@ -134,4 +143,4 @@
 - ยืนยันว่า runtime data ใน `data/chroma/` ไม่ถูก commit เนื่องจาก `.gitignore`
 
 ## Current Status
-Baseline ✅ | Phase 1 ✅ | Phase 2 ✅ | Phase 3 ⬜ | Phase 4 ⬜ | Phase 5 ⬜ | Phase 6 ⬜ | Phase 7 ⬜
+Baseline ✅ | Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅ | Phase 4 ⬜ | Phase 5 ⬜ | Phase 6 ⬜ | Phase 7 ⬜

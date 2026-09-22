@@ -119,7 +119,63 @@ def retrieve_relevant_chunks(query, n_results=RETRIEVAL_TOP_K):
     top_score = candidates[0]["final_score"] if candidates else 0.0
     avg_score = sum(item["final_score"] for item in selected) / len(selected) if selected else 0.0
 
-    return selected, {"top_score": top_score, "avg_score": avg_score}
+    return selected, {
+        "top_score": top_score,
+        "avg_score": avg_score,
+        "candidates": candidates,
+        "strict_threshold": MIN_FINAL_SCORE,
+        "fallback_threshold": FALLBACK_FINAL_SCORE,
+    }
+
+
+def get_retrieval_inspection(query, n_results=RETRIEVAL_TOP_K):
+    """Return a readable retrieval trace for learning and debugging."""
+    if not query or not query.strip():
+        return "Please enter a query"
+
+    selected, stats = retrieve_relevant_chunks(query.strip(), n_results=n_results)
+    candidates = stats.get("candidates", [])
+    selected_ids = {id(item) for item in selected}
+
+    lines = [
+        "Retrieval Inspector",
+        f"Query: {query.strip()}",
+        f"Candidates returned: {len(candidates)}",
+        f"Strict threshold: {stats['strict_threshold']:.3f}",
+        f"Fallback threshold: {stats['fallback_threshold']:.3f}",
+        f"Top score: {stats['top_score']:.3f}",
+        f"Average selected score: {stats['avg_score']:.3f}",
+        f"Selected for LLM: {len(selected)} chunk(s)",
+        "",
+    ]
+
+    if not candidates:
+        lines.append("Decision: NO CANDIDATES")
+        return "\n".join(lines)
+
+    lines.append("Candidates:")
+    for rank, item in enumerate(candidates, start=1):
+        metadata = item.get("metadata") or {}
+        source = metadata.get("source", "unknown")
+        chunk_id = metadata.get("chunk_id", "?")
+        decision = "SELECTED" if id(item) in selected_ids else "NOT SELECTED"
+        preview = " ".join((item.get("document") or "").split())
+        if len(preview) > 140:
+            preview = preview[:140] + "..."
+        lines.append(
+            f"{rank}. {decision} | source={source} | chunk={chunk_id} | "
+            f"semantic={item['semantic_score']:.3f} | "
+            f"lexical={item['lexical_score']:.3f} | final={item['final_score']:.3f}"
+        )
+        lines.append(f"   Preview: {preview}")
+
+    lines.append("")
+    if selected:
+        lines.append("Decision: selected chunks will be included in the LLM context.")
+    else:
+        lines.append("Decision: no chunk passed the retrieval thresholds; abstain.")
+
+    return "\n".join(lines)
 
 
 def _small_talk_response(query):
@@ -438,6 +494,11 @@ def admin_inspector_interface():
     """Admin interface for inspecting indexed documents and chunks."""
     return get_document_chunk_inspector()
 
+
+def admin_retrieval_interface(query):
+    """Admin interface for inspecting retrieval decisions."""
+    return get_retrieval_inspection(query)
+
 # Create Gradio interfaces
 with gr.Blocks() as admin_app:
     gr.Markdown("# Admin Interface")
@@ -455,6 +516,15 @@ with gr.Blocks() as admin_app:
         fn=admin_inspector_interface,
         inputs=None,
         outputs=inspector_output,
+    )
+    gr.Markdown("## Retrieval Inspector")
+    retrieval_query = gr.Textbox(label="Test Query")
+    retrieval_btn = gr.Button("Inspect Retrieval")
+    retrieval_output = gr.Textbox(label="Retrieval Trace", lines=20)
+    retrieval_btn.click(
+        fn=admin_retrieval_interface,
+        inputs=retrieval_query,
+        outputs=retrieval_output,
     )
 # ส่วนของ ChatBot
 with gr.Blocks() as chat_app:
