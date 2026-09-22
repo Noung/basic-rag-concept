@@ -63,11 +63,11 @@
 **Learning outcome:** เข้าใจ grounding, hallucination และบทบาทของ prompt.
 
 ### Phase 6 — Evaluation Lab
-**Status: ⬜ Planned**
-- [ ] สร้าง golden questions
-- [ ] expected answer/source
-- [ ] วัด Retrieval Hit Rate@K, Source Match, Correct/Incorrect/No Answer และ latency
-- [ ] เปรียบเทียบก่อน/หลังปรับ configuration
+**Status: ✅ Completed**
+- [x] สร้าง golden questions
+- [x] expected answer/source
+- [x] วัด Retrieval Hit Rate@K, Source Match, Correct/Incorrect/No Answer และ latency
+- [x] เปรียบเทียบก่อน/หลังปรับ configuration (รองรับผ่านพารามิเตอร์ Top-K)
 
 **Learning outcome:** เข้าใจว่าการปรับ RAG ต้องวัดผล ไม่ตัดสินจากคำถามไม่กี่ข้อ.
 
@@ -118,6 +118,17 @@
 - ทดสอบ ingest เอกสารเดิมซ้ำสำเร็จ: `added=0`, `reused=3`, `removed=0`
 - ปิด Phase 1 สำเร็จตาม Exit Criteria
 
+### 2026-09-22 — Phase 6 Implementation
+**Status: ✅ Completed**
+- เพิ่ม `evaluation.py` เป็น Evaluation Lab แบบ offline
+- เพิ่ม golden questions 6 ข้อ พร้อม expected terms, source และ category
+- เพิ่ม metrics: Retrieval Hit Rate@K, Source Match, Correct Evidence, No Answer และ latency
+- เพิ่มผลรายข้อและ JSON report สำหรับนำไปวิเคราะห์ต่อ
+- เพิ่มปุ่ม `Run Golden Set Evaluation` ในหน้า Admin
+- ทดสอบจริงด้วย `nomic-embed-text`: Hit Rate@5 = 100%, Source Match = 100%, Correct Evidence = 100%
+- ค่าเฉลี่ย retrieval latency 1,834.97 ms; ค่าสูงสุด 10,874.28 ms (ขึ้นกับการโหลดโมเดลครั้งแรก)
+- `python -m py_compile rag_app.py ingestion.py evaluation.py` และ `git diff --check` ผ่าน
+
 ### 2026-09-22 — Phase 5 Implementation
 **Status: ✅ Completed**
 - เพิ่ม `get_prompt_context_inspection()` สำหรับดู context และ prompt ก่อนเรียก generation
@@ -162,4 +173,4 @@
 - ยืนยันว่า runtime data ใน `data/chroma/` ไม่ถูก commit เนื่องจาก `.gitignore`
 
 ## Current Status
-Baseline ✅ | Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅ | Phase 4 ✅ | Phase 5 ✅ | Phase 6 ⬜ | Phase 7 ⬜
+Baseline ✅ | Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅ | Phase 4 ✅ | Phase 5 ✅ | Phase 6 ✅ | Phase 7 ⬜

@@ -596,6 +596,13 @@ def admin_inspector_interface():
     return get_document_chunk_inspector()
 
 
+def admin_evaluation_interface(top_k):
+    """Admin interface for running the golden-question evaluation."""
+    from evaluation import evaluate_golden_set, format_report
+
+    return format_report(evaluate_golden_set(n_results=int(top_k)))
+
+
 def admin_prompt_context_interface(
     query,
     top_k,
@@ -693,6 +700,15 @@ with gr.Blocks() as admin_app:
             retrieval_threshold,
         ],
         outputs=prompt_output,
+    )
+    gr.Markdown("## Evaluation Lab")
+    evaluation_top_k = gr.Number(label="Evaluation Top-K", value=5, precision=0)
+    evaluation_btn = gr.Button("Run Golden Set Evaluation")
+    evaluation_output = gr.Textbox(label="Evaluation Report", lines=20)
+    evaluation_btn.click(
+        fn=admin_evaluation_interface,
+        inputs=evaluation_top_k,
+        outputs=evaluation_output,
     )
 # ส่วนของ ChatBot
 with gr.Blocks() as chat_app:

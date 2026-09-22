@@ -49,6 +49,10 @@ Answer + Sources
 - Source citation
 - Small-talk routing
 - **Persistent Vector Store** — index ยังคงอยู่หลัง restart application
+- Document & Chunk Inspector
+- Retrieval Inspector และ Prompt/Context Inspector
+- RAG Configuration Lab
+- Offline Evaluation Lab พร้อม golden questions และ metrics
 
 Roadmap การพัฒนา RAG Learning Lab ดูได้ที่ `PLAN.md`
 
@@ -73,6 +77,12 @@ pip install -r requirements.txt
 
 ```bash
 python rag_app.py
+```
+
+รัน Evaluation Lab จาก command line:
+
+```bash
+python evaluation.py
 ```
 
 Entry point คือ `rag_app.py` และ Gradio จะแสดงทั้ง Admin Upload และ User Chat
