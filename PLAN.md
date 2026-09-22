@@ -72,13 +72,13 @@
 **Learning outcome:** เข้าใจว่าการปรับ RAG ต้องวัดผล ไม่ตัดสินจากคำถามไม่กี่ข้อ.
 
 ### Phase 7 — Learning-oriented Refactor
-**Status: ⬜ Planned**
-- [ ] แยก `vector_store.py`
-- [ ] แยก `retrieval.py`
-- [ ] แยก `generation.py`
-- [ ] แยก `config.py`
-- [ ] เพิ่ม evaluation directory
-- [ ] ปรับ README ให้ตรงกับ Learning Lab
+**Status: ✅ Completed**
+- [x] แยก `vector_store.py`
+- [x] แยก `retrieval.py`
+- [x] แยก `generation.py`
+- [x] แยก `config.py`
+- [x] เพิ่ม evaluation directory/module และ unit tests
+- [x] ปรับ README ให้ตรงกับ Learning Lab
 
 เป้าหมายคือ module อ่านง่ายและ map กลับไปยัง RAG pipeline ได้ โดยยังไม่เพิ่ม framework ที่ไม่จำเป็น เช่น FastAPI, React/Vue, Redis, Celery, Kubernetes หรือ LangChain/LlamaIndex abstraction.
 
@@ -117,6 +117,16 @@
 - ทดสอบ restart persistence สำเร็จ: เปิด process ใหม่แล้วยังพบ 3 chunks และ 1 document
 - ทดสอบ ingest เอกสารเดิมซ้ำสำเร็จ: `added=0`, `reused=3`, `removed=0`
 - ปิด Phase 1 สำเร็จตาม Exit Criteria
+
+### 2026-09-22 — Phase 7 Implementation
+**Status: ✅ Completed**
+- เพิ่ม `config.py` สำหรับรวม model, Ollama, retrieval, chunking และ ChromaDB configuration
+- เพิ่ม `vector_store.py` เป็น boundary สำหรับ Persistent ChromaDB และ index stats
+- เพิ่ม `retrieval.py` สำหรับ lexical score, distance conversion และ hybrid scoring
+- เพิ่ม `generation.py` สำหรับ grounded prompt และ citation
+- เชื่อม `rag_app.py` เข้ากับ config, vector store และ generation modules โดยคง backward-compatible wrappers
+- เพิ่ม `tests/test_modules.py` และทดสอบผ่าน 3 tests
+- `python -m py_compile` และ `git diff --check` ผ่าน
 
 ### 2026-09-22 — Phase 6 Implementation
 **Status: ✅ Completed**
@@ -173,4 +183,4 @@
 - ยืนยันว่า runtime data ใน `data/chroma/` ไม่ถูก commit เนื่องจาก `.gitignore`
 
 ## Current Status
-Baseline ✅ | Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅ | Phase 4 ✅ | Phase 5 ✅ | Phase 6 ✅ | Phase 7 ⬜
+Baseline ✅ | Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅ | Phase 4 ✅ | Phase 5 ✅ | Phase 6 ✅ | Phase 7 ✅

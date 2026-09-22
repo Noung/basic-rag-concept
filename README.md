@@ -54,6 +54,13 @@ Answer + Sources
 - RAG Configuration Lab
 - Offline Evaluation Lab พร้อม golden questions และ metrics
 
+โครงสร้างโมดูลหลัก:
+
+```text
+config.py → ingestion.py → vector_store.py → retrieval.py → generation.py
+                                      ↘ evaluation.py
+```
+
 Roadmap การพัฒนา RAG Learning Lab ดูได้ที่ `PLAN.md`
 
 ## Prerequisites
@@ -124,6 +131,12 @@ data/chroma/
 7. Learning-oriented Refactor
 
 เป้าหมายคือทำให้ผู้เรียนสามารถทดลองและอธิบายได้ว่า **RAG ดึงข้อมูลอะไรมา ทำไมจึงเลือกข้อมูลนั้น และ context ใดถูกส่งให้ LLM ก่อนสร้างคำตอบ**
+
+## Tests
+
+```bash
+python -m unittest discover -s tests -v
+```
 
 ## License
 

@@ -1,36 +1,36 @@
 import gradio as gr
-import chromadb
 from chromadb.utils import embedding_functions
 import ollama
 import os
 import re
+from config import (
+    CHROMA_DATA_DIR,
+    EMBEDDING_MODEL,
+    FALLBACK_FINAL_SCORE,
+    INSUFFICIENT_CONTEXT_TEXT,
+    LEXICAL_WEIGHT,
+    MAX_CONTEXT_CHUNKS,
+    MIN_FINAL_SCORE,
+    MODEL,
+    OLLAMA_URL,
+    RETRIEVAL_TOP_K,
+    SEMANTIC_WEIGHT,
+)
 from ingestion import (
     chunk_text,
     document_id_from_path,
     prepare_unique_chunks,
     timestamp_utc,
 )
+from vector_store import collection
+from generation import build_grounded_prompt, citation_block
+from retrieval import distance_to_relevance as _distance_to_relevance
+from retrieval import lexical_overlap_score as _lexical_overlap_score_impl
 
-MODEL = "gemma3:1b"
-RETRIEVAL_TOP_K = 8
-INSUFFICIENT_CONTEXT_TEXT = "ไม่พบข้อมูลเพียงพอในเอกสารที่อัปโหลด"
-SEMANTIC_WEIGHT = 0.75
-LEXICAL_WEIGHT = 0.25
-MIN_FINAL_SCORE = 0.22
-FALLBACK_FINAL_SCORE = 0.16
-MAX_CONTEXT_CHUNKS = 4
-CHROMA_DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "chroma")
-
-# Persistent ChromaDB keeps the vector index across application restarts.
-client = chromadb.PersistentClient(path=CHROMA_DATA_DIR)
-
-# Create or get collection สร้าง ถังเก็บข้อมูล
-collection = client.get_or_create_collection(name="rag_collection")
-
-# Initialize Ollama embedding function , เตรียม Function สำหรับ แปลงข้อมูลเป็น vector
+# Initialize Ollama embedding function, kept at the application boundary.
 ollama_ef = embedding_functions.OllamaEmbeddingFunction(
-    url="http://localhost:11434/api/embeddings",
-    model_name="nomic-embed-text"
+    url=OLLAMA_URL,
+    model_name=EMBEDDING_MODEL,
 )
 
 # อ่านไฟล์ข้อความ
@@ -48,28 +48,14 @@ def _safe_list(value):
     return value if isinstance(value, list) else []
 
 
-def _tokenize_for_lexical_score(text):
-    """Tokenize Thai/English text for lightweight lexical matching."""
-    cleaned = re.sub(r"[^0-9a-zA-Zก-๙\s]", " ", text.lower())
-    tokens = [token for token in cleaned.split() if token]
-    return tokens
-
-
 def _lexical_overlap_score(query, text):
-    """Compute overlap score between query and candidate chunk text (0..1)."""
-    query_tokens = set(_tokenize_for_lexical_score(query))
-    text_tokens = set(_tokenize_for_lexical_score(text))
-    if not query_tokens or not text_tokens:
-        return 0.0
-    shared = query_tokens.intersection(text_tokens)
-    return len(shared) / len(query_tokens)
+    """Backward-compatible wrapper around the retrieval module."""
+    return _lexical_overlap_score_impl(query, text)
 
 
 def distance_to_relevance(distance):
-    """Convert vector distance to a bounded relevance score (0..1)."""
-    if distance is None:
-        return 0.0
-    return 1.0 / (1.0 + max(float(distance), 0.0))
+    """Backward-compatible wrapper around the retrieval module."""
+    return _distance_to_relevance(distance)
 
 
 def retrieve_relevant_chunks(
@@ -532,35 +518,9 @@ def query_rag(query, history,temperature=0.3, n_results=5):
         yield INSUFFICIENT_CONTEXT_TEXT
         return
 
-    source_refs = []
-    for item in selected_chunks:
-        metadata = item["metadata"]
-        source = metadata.get('source', 'unknown') if metadata else 'unknown'
-        if source not in source_refs:
-            source_refs.append(source)
-
-    # Combine relevant chunks with source information ถ้าเจอข้อมูล ให้ทำการ สร้าง prompt 
-    context = ""
-    for item in selected_chunks:
-        doc = item["document"]
-        metadata = item["metadata"]
-        source = metadata.get('source', 'unknown') if metadata else 'unknown'
-        score = item.get("final_score", 0.0)
-        context += f"[Source: {source} | Score: {score:.3f}]\n{doc}\n\n"
-
-    # Stream response using ollama.generate with temperature  เตรียม context ที่ดึงจาก Vector database ถามไปที่ ollama
-    prompt = (
-        "คุณเป็นผู้ช่วยที่ตอบจากเอกสารที่ให้เท่านั้น\n"
-        "กติกา:\n"
-        "1) ใช้ข้อมูลจาก Context เท่านั้น\n"
-        "2) ถ้าพบข้อมูลที่ตอบคำถามได้ ให้ตอบสั้น กระชับ ชัดเจน เป็นภาษาไทย\n"
-        f"3) ถ้าไม่พบข้อมูลที่ตอบได้จริง ให้ตอบว่า: {INSUFFICIENT_CONTEXT_TEXT}\n"
-        "4) ห้ามแต่งข้อมูลเพิ่มเอง\n\n"
-        "5) ถ้าคำถามขอจำนวนหรือรายการ ให้คำนวณ/สรุปจาก Context ก่อนตอบ\n\n"
-        f"Context:\n{context}\n"
-        f"Question: {query}\n"
-        "Answer:"
-    )
+    prompt_data = build_grounded_prompt(query, selected_chunks)
+    prompt = prompt_data["prompt"]
+    source_refs = prompt_data["sources"]
     
     stream = ollama.generate(
         model=MODEL,
@@ -576,8 +536,7 @@ def query_rag(query, history,temperature=0.3, n_results=5):
         yield response
 
     if source_refs:
-        citation_block = "\n\nSources:\n" + "\n".join([f"- {source}" for source in source_refs])
-        yield response + citation_block
+        yield response + citation_block(source_refs)
 
 # ส่วนของหน้าจอ UI
 # Admin interface for uploading files ส่วน Admin 
