@@ -55,10 +55,10 @@
 **Learning outcome:** เห็นผลของ parameter ต่อ retrieval และคำตอบ.
 
 ### Phase 5 — Prompt & Context Inspector
-**Status: ⬜ Planned**
-- [ ] แสดง context ที่ส่งเข้า LLM
-- [ ] แสดง prompt template และ sources
-- [ ] แสดง insufficient-context path
+**Status: ✅ Completed**
+- [x] แสดง context ที่ส่งเข้า LLM
+- [x] แสดง prompt template และ sources
+- [x] แสดง insufficient-context path
 
 **Learning outcome:** เข้าใจ grounding, hallucination และบทบาทของ prompt.
 
@@ -118,6 +118,16 @@
 - ทดสอบ ingest เอกสารเดิมซ้ำสำเร็จ: `added=0`, `reused=3`, `removed=0`
 - ปิด Phase 1 สำเร็จตาม Exit Criteria
 
+### 2026-09-22 — Phase 5 Implementation
+**Status: ✅ Completed**
+- เพิ่ม `get_prompt_context_inspection()` สำหรับดู context และ prompt ก่อนเรียก generation
+- เพิ่มการแสดง selected chunks, sources และ prompt template แบบเต็ม
+- เพิ่มเส้นทาง `INSUFFICIENT_CONTEXT` เมื่อหลักฐานไม่พอ
+- เพิ่ม Prompt & Context Inspector ในหน้า Admin
+- ทดสอบ query `2568` สำเร็จ: context, prompt และ sources แสดงครบ
+- ตรวจสอบ empty query และ fallback branch ในฟังก์ชัน inspector
+- `python -m py_compile rag_app.py ingestion.py` และ `git diff --check` ผ่าน
+
 ### 2026-09-22 — Phase 4 Implementation
 **Status: ✅ Completed**
 - เพิ่มพารามิเตอร์ chunk size/overlap ใน Admin Upload
@@ -152,4 +162,4 @@
 - ยืนยันว่า runtime data ใน `data/chroma/` ไม่ถูก commit เนื่องจาก `.gitignore`
 
 ## Current Status
-Baseline ✅ | Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅ | Phase 4 ✅ | Phase 5 ⬜ | Phase 6 ⬜ | Phase 7 ⬜
+Baseline ✅ | Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅ | Phase 4 ✅ | Phase 5 ✅ | Phase 6 ⬜ | Phase 7 ⬜

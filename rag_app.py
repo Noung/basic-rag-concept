@@ -211,6 +211,70 @@ def get_retrieval_inspection(
     return "\n".join(lines)
 
 
+def get_prompt_context_inspection(
+    query,
+    n_results=RETRIEVAL_TOP_K,
+    max_context_chunks=MAX_CONTEXT_CHUNKS,
+    semantic_weight=SEMANTIC_WEIGHT,
+    lexical_weight=LEXICAL_WEIGHT,
+    min_final_score=MIN_FINAL_SCORE,
+):
+    """Show the context and grounded prompt before generation."""
+    if not query or not query.strip():
+        return "Please enter a query"
+
+    selected, stats = retrieve_relevant_chunks(
+        query.strip(),
+        n_results=int(n_results),
+        semantic_weight=float(semantic_weight),
+        lexical_weight=float(lexical_weight),
+        min_final_score=float(min_final_score),
+        max_context_chunks=int(max_context_chunks),
+    )
+    if not selected or stats["top_score"] < FALLBACK_FINAL_SCORE:
+        return (
+            "Prompt & Context Inspector\n"
+            f"Query: {query.strip()}\n"
+            "Decision: INSUFFICIENT_CONTEXT\n"
+            f"Fallback message: {INSUFFICIENT_CONTEXT_TEXT}"
+        )
+
+    source_refs = []
+    context_parts = []
+    for item in selected:
+        metadata = item.get("metadata") or {}
+        source = metadata.get("source", "unknown")
+        if source not in source_refs:
+            source_refs.append(source)
+        context_parts.append(
+            f"[Source: {source} | Score: {item.get('final_score', 0.0):.3f}]\n"
+            f"{item.get('document', '')}"
+        )
+
+    context = "\n\n".join(context_parts)
+    prompt = (
+        "คุณเป็นผู้ช่วยที่ตอบจากเอกสารที่ให้เท่านั้น\n"
+        "กติกา:\n"
+        "1) ใช้ข้อมูลจาก Context เท่านั้น\n"
+        "2) ถ้าพบข้อมูลที่ตอบคำถามได้ ให้ตอบสั้น กระชับ ชัดเจน เป็นภาษาไทย\n"
+        f"3) ถ้าไม่พบข้อมูลที่ตอบได้จริง ให้ตอบว่า: {INSUFFICIENT_CONTEXT_TEXT}\n"
+        "4) ห้ามแต่งข้อมูลเพิ่มเอง\n\n"
+        "5) ถ้าคำถามขอจำนวนหรือรายการ ให้คำนวณ/สรุปจาก Context ก่อนตอบ\n\n"
+        f"Context:\n{context}\n"
+        f"Question: {query.strip()}\n"
+        "Answer:"
+    )
+    sources = "\n".join(f"- {source}" for source in source_refs)
+    return (
+        "Prompt & Context Inspector\n"
+        f"Query: {query.strip()}\n"
+        f"Selected chunks: {len(selected)}\n"
+        f"Sources:\n{sources}\n\n"
+        f"=== Context sent to LLM ===\n{context}\n\n"
+        f"=== Prompt sent to LLM ===\n{prompt}"
+    )
+
+
 def _small_talk_response(query):
     """Handle casual chat without routing to RAG retrieval."""
     normalized = re.sub(r"\s+", " ", query.lower()).strip()
@@ -532,6 +596,25 @@ def admin_inspector_interface():
     return get_document_chunk_inspector()
 
 
+def admin_prompt_context_interface(
+    query,
+    top_k,
+    max_context_chunks,
+    semantic_weight,
+    lexical_weight,
+    min_final_score,
+):
+    """Admin interface for inspecting prompt and selected context."""
+    return get_prompt_context_inspection(
+        query,
+        n_results=top_k,
+        max_context_chunks=max_context_chunks,
+        semantic_weight=semantic_weight,
+        lexical_weight=lexical_weight,
+        min_final_score=min_final_score,
+    )
+
+
 def admin_retrieval_interface(
     query,
     top_k,
@@ -594,6 +677,22 @@ with gr.Blocks() as admin_app:
             retrieval_threshold,
         ],
         outputs=retrieval_output,
+    )
+    gr.Markdown("## Prompt & Context Inspector")
+    prompt_query = gr.Textbox(label="Prompt Test Query")
+    prompt_btn = gr.Button("Inspect Prompt & Context")
+    prompt_output = gr.Textbox(label="Prompt and Context Trace", lines=30)
+    prompt_btn.click(
+        fn=admin_prompt_context_interface,
+        inputs=[
+            prompt_query,
+            retrieval_top_k,
+            retrieval_max_context,
+            retrieval_semantic_weight,
+            retrieval_lexical_weight,
+            retrieval_threshold,
+        ],
+        outputs=prompt_output,
     )
 # ส่วนของ ChatBot
 with gr.Blocks() as chat_app:
