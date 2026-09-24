@@ -63,6 +63,8 @@ config.py → ingestion.py → vector_store.py → retrieval.py → generation.p
 
 Roadmap การพัฒนา RAG Learning Lab ดูได้ที่ `PLAN.md`
 
+คู่มือการติดตั้งและรันระบบแบบละเอียดดูได้ที่ `RUNNING_GUIDE.md`
+
 ## Prerequisites
 
 1. Python

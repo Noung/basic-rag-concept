@@ -182,5 +182,11 @@
 - ผลลัพธ์: `added=0`, `reused=3`, `removed=0`
 - ยืนยันว่า runtime data ใน `data/chroma/` ไม่ถูก commit เนื่องจาก `.gitignore`
 
+### 2026-09-24 — Running Guide
+**Status: ✅ Completed**
+- เพิ่ม `RUNNING_GUIDE.md` สำหรับ Windows + Ollama + Gradio
+- ครอบคลุมการติดตั้งโมเดล, dependencies, การรัน UI, การทดสอบแต่ละ Inspector, Evaluation Lab, persistence, deduplication และ troubleshooting
+- เพิ่มลิงก์คู่มือใน `README.md`
+
 ## Current Status
 Baseline ✅ | Phase 1 ✅ | Phase 2 ✅ | Phase 3 ✅ | Phase 4 ✅ | Phase 5 ✅ | Phase 6 ✅ | Phase 7 ✅
